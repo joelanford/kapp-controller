@@ -20,6 +20,7 @@ import (
 	kcconfig "github.com/vmware-tanzu/carvel-kapp-controller/pkg/config"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/deploy"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/exec"
+	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/kuberneedies"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/metrics"
 	pkginstall "github.com/vmware-tanzu/carvel-kapp-controller/pkg/packageinstall"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/pkgrepository"
@@ -72,6 +73,7 @@ func Run(opts Options, runLog logr.Logger) error {
 	if err != nil {
 		return fmt.Errorf("Building core client: %s", err)
 	}
+	kuberneedies.InitializeCoreClient(coreClient)
 
 	kcClient, err := kcclient.NewForConfig(restConfig)
 	if err != nil {
@@ -134,8 +136,7 @@ func Run(opts Options, runLog logr.Logger) error {
 	sidecarCmdExec := sidecarClient.CmdExec()
 
 	{ // add controller for config
-		reconciler := kcconfig.NewReconciler(
-			coreClient, kcConfig, sidecarClient.OSConfig(), runLog.WithName("config"))
+		reconciler := kcconfig.NewReconciler(kcConfig, sidecarClient.OSConfig(), runLog.WithName("config"))
 
 		ctrl, err := controller.New("config", mgr, controller.Options{
 			Reconciler:              reconciler,
@@ -167,7 +168,7 @@ func Run(opts Options, runLog logr.Logger) error {
 	updateStatusTracker := reftracker.NewAppUpdateStatus()
 
 	// initialize deploy factory once - the deploy factory contains a service account token cache which should be only setup once.
-	deployFactory := deploy.NewFactory(coreClient, kcConfig, sidecarCmdExec, runLog)
+	deployFactory := deploy.NewFactory(kcConfig, sidecarCmdExec, runLog)
 
 	{ // add controller for apps
 		appFactory := app.CRDAppFactory{
@@ -202,7 +203,7 @@ func Run(opts Options, runLog logr.Logger) error {
 		pkgToPkgInstallHandler := pkginstall.NewPackageInstallVersionHandler(
 			kcClient, opts.PackagingGloablNS, runLog.WithName("handler"))
 
-		reconciler := pkginstall.NewReconciler(deployFactory, kcClient, pkgClient, coreClient, pkgToPkgInstallHandler, runLog.WithName("pkgi"), Version)
+		reconciler := pkginstall.NewReconciler(deployFactory, kcClient, pkgClient, pkgToPkgInstallHandler, runLog.WithName("pkgi"), Version)
 
 		ctrl, err := controller.New("pkgi", mgr, controller.Options{
 			Reconciler:              reconciler,

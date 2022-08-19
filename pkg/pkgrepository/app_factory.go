@@ -18,6 +18,7 @@ import (
 
 // AppFactory allows to create "hidden" Apps for reconciling PackageRepositories.
 type AppFactory struct {
+	// TODO: fullness of this pattern implies you wouldn't store CoreClient here at all
 	CoreClient kubernetes.Interface
 	AppClient  kcclient.Interface
 	KcConfig   *config.Config
@@ -28,6 +29,6 @@ type AppFactory struct {
 func (f *AppFactory) NewCRDPackageRepo(app *kcv1alpha1.App, pkgr *pkgv1alpha1.PackageRepository, log logr.Logger) *CRDApp {
 	fetchFactory := fetch.NewFactory(f.CoreClient, fetch.VendirOpts{SkipTLSConfig: f.KcConfig}, f.CmdRunner)
 	templateFactory := template.NewFactory(f.CoreClient, fetchFactory, false, f.CmdRunner)
-	deployFactory := deploy.NewFactory(f.CoreClient, nil, f.CmdRunner, log)
+	deployFactory := deploy.NewFactory(nil, f.CmdRunner, log)
 	return NewCRDApp(app, pkgr, log, f.AppClient, fetchFactory, templateFactory, deployFactory)
 }

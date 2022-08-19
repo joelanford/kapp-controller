@@ -9,6 +9,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/apis/kappctrl/v1alpha1"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/exec"
+	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/kuberneedies"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
@@ -19,7 +20,6 @@ import (
 // kapp deployer is standard, kapp privileged deployer
 // should only be used for PackageRepository reconciliation.
 type Factory struct {
-	coreClient kubernetes.Interface
 	kappConfig KappConfiguration
 
 	kubeconfigSecrets *KubeconfigSecrets
@@ -34,11 +34,11 @@ type KappConfiguration interface {
 }
 
 // NewFactory returns deploy factory.
-func NewFactory(coreClient kubernetes.Interface,
-	kappConfig KappConfiguration, cmdRunner exec.CmdRunner, log logr.Logger) Factory {
+func NewFactory(kappConfig KappConfiguration, cmdRunner exec.CmdRunner, log logr.Logger) Factory {
 
-	return Factory{coreClient, kappConfig,
-		NewKubeconfigSecrets(coreClient), NewServiceAccounts(coreClient, log), cmdRunner}
+	// TODO: if you extended this pattern fully you would let NewKubeconfigSecrets and NewServiceAccounts get the core client for themselves.
+	return Factory{kappConfig,
+		NewKubeconfigSecrets(kuberneedies.CoreClient()), NewServiceAccounts(kuberneedies.CoreClient(), log), cmdRunner}
 }
 
 // NewKapp configures and returns a deployer of type Kapp
@@ -110,7 +110,7 @@ func (f Factory) globalKappDeployRawOpts() []string {
 func (f Factory) GetClusterVersion(saName string, specCluster *v1alpha1.AppCluster, objMeta *metav1.ObjectMeta, log logr.Logger) (*version.Info, error) {
 	switch {
 	case len(saName) > 0:
-		return f.coreClient.Discovery().ServerVersion()
+		return kuberneedies.CoreClient().Discovery().ServerVersion()
 	case specCluster != nil:
 		processedGenericOpts, err := f.processOpts(saName, specCluster, GenericOpts{Name: objMeta.Name, Namespace: objMeta.Namespace})
 		if err != nil {

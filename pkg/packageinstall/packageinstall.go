@@ -17,6 +17,7 @@ import (
 	kcclient "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned/scheme"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/deploy"
+	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/kuberneedies"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/reconciler"
 	"github.com/vmware-tanzu/carvel-vendir/pkg/vendir/versions"
 	verv1alpha1 "github.com/vmware-tanzu/carvel-vendir/pkg/vendir/versions/v1alpha1"
@@ -25,7 +26,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -45,16 +45,15 @@ type PackageInstallCR struct {
 	log               logr.Logger
 	kcclient          kcclient.Interface
 	pkgclient         pkgclient.Interface
-	coreClient        kubernetes.Interface
 	controllerVersion string
 	deployFactory     deploy.Factory
 }
 
 func NewPackageInstallCR(model *pkgingv1alpha1.PackageInstall, log logr.Logger,
-	kcclient kcclient.Interface, pkgclient pkgclient.Interface, coreClient kubernetes.Interface, controllerVersion string, deployFactory deploy.Factory) *PackageInstallCR {
+	kcclient kcclient.Interface, pkgclient pkgclient.Interface, controllerVersion string, deployFactory deploy.Factory) *PackageInstallCR {
 
 	return &PackageInstallCR{model: model, unmodifiedModel: model.DeepCopy(), log: log,
-		kcclient: kcclient, pkgclient: pkgclient, coreClient: coreClient, controllerVersion: controllerVersion, deployFactory: deployFactory}
+		kcclient: kcclient, pkgclient: pkgclient, controllerVersion: controllerVersion, deployFactory: deployFactory}
 }
 
 func (pi *PackageInstallCR) Reconcile() (reconcile.Result, error) {
@@ -517,7 +516,7 @@ func (pi PackageInstallCR) createSecretForSecretgenController(iteration int) (st
 
 	controllerutil.SetOwnerReference(pi.model, secret, scheme.Scheme)
 
-	_, err := pi.coreClient.CoreV1().Secrets(pi.model.Namespace).Create(
+	_, err := kuberneedies.CoreClient().CoreV1().Secrets(pi.model.Namespace).Create(
 		context.Background(), secret, metav1.CreateOptions{})
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {

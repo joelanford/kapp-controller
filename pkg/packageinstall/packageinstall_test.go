@@ -15,6 +15,7 @@ import (
 	datapkgingv1alpha1 "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/apis/datapackaging/v1alpha1"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/deploy"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/exec"
+	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/kuberneedies"
 
 	fakeapiserver "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/client/clientset/versioned/fake"
 	fakekappctrl "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned/fake"
@@ -33,6 +34,7 @@ import (
 func Test_PackageRefWithPrerelease_IsFound(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 
 	// PackageMetadata with prerelease version
 	expectedPackageVersion := datapkgingv1alpha1.Package{
@@ -54,7 +56,7 @@ func Test_PackageRefWithPrerelease_IsFound(t *testing.T) {
 		GitVersion: "v0.20.0",
 	}
 
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// PackageInstall that has PackageRef with prerelease
 	ip := PackageInstallCR{
@@ -98,9 +100,10 @@ func Test_PackageWithConstraints(t *testing.T) {
 
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	pkg := generatePackageWithConstraints("pkg.test.carvel.dev", "0.0.0", ">1.0.0 <2.0.0", ">0.15.0")
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&pkg)
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -126,7 +129,6 @@ func Test_PackageWithConstraints(t *testing.T) {
 		pkgclient:         fakePkgClient,
 		controllerVersion: "1.5.0",
 		log:               log,
-		coreClient:        fakek8s,
 		deployFactory:     deployFactory,
 	}
 
@@ -168,6 +170,7 @@ func Test_PackageWithConstraints(t *testing.T) {
 func Test_Package_NotFound(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	fakePkgClient := fakeapiserver.NewSimpleClientset()
 	pkgName := "pkg.test.carvel.dev"
 
@@ -188,7 +191,6 @@ func Test_Package_NotFound(t *testing.T) {
 		pkgclient:         fakePkgClient,
 		controllerVersion: "0.42.0",
 		log:               log,
-		coreClient:        fakek8s,
 	}
 
 	_, err := ip.referencedPkgVersion()
@@ -199,9 +201,10 @@ func Test_Package_NotFound(t *testing.T) {
 func Test_Package_ConstraintNotGiven_ErrorDoesNotContainMessage(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	pkg := generatePackageWithConstraints("pkg.test.carvel.dev", "0.0.0", "1.0.0", "")
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&pkg)
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	ip := PackageInstallCR{
 		model: &pkgingv1alpha1.PackageInstall{
@@ -221,7 +224,6 @@ func Test_Package_ConstraintNotGiven_ErrorDoesNotContainMessage(t *testing.T) {
 		pkgclient:         fakePkgClient,
 		controllerVersion: "1.5.0",
 		log:               log,
-		coreClient:        fakek8s,
 		deployFactory:     deployFactory,
 	}
 
@@ -234,10 +236,11 @@ func Test_Package_ConstraintNotGiven_ErrorDoesNotContainMessage(t *testing.T) {
 func Test_PackageWithConstraintsWithPrerelease(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	pkg := generatePackageWithConstraints("pkg.test.carvel.dev", "0.0.0", ">1.0.0 <2.0.0", "0.10.0")
 	pkg2 := generatePackageWithConstraints("pkg.test.carvel.dev", "2.0.0", ">1.0.0 <2.0.0", "0.20.0")
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&pkg, &pkg2)
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -263,7 +266,6 @@ func Test_PackageWithConstraintsWithPrerelease(t *testing.T) {
 		pkgclient:         fakePkgClient,
 		controllerVersion: "1.5.0",
 		log:               log,
-		coreClient:        fakek8s,
 		deployFactory:     deployFactory,
 	}
 
@@ -275,12 +277,13 @@ func Test_PackageWithConstraintsWithPrerelease(t *testing.T) {
 func Test_PackageWithConstraints_HighestMatch(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	pkgName := "pkg.test.carvel.dev"
 	pkg1 := generatePackageWithConstraints(pkgName, "0.4.0", ">0.1.0", ">0.1.0") // this one is the lowest version but installable
 	pkg2 := generatePackageWithConstraints(pkgName, "0.5.0", ">0.1.0", ">0.1.0") // this one is the highest installable version
 	pkg3 := generatePackageWithConstraints(pkgName, "1.4.1", ">2.0.0", "")       // higher version uninstallable
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&pkg1, &pkg2, &pkg3)
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -306,7 +309,6 @@ func Test_PackageWithConstraints_HighestMatch(t *testing.T) {
 		pkgclient:         fakePkgClient,
 		controllerVersion: "1.5.0",
 		log:               log,
-		coreClient:        fakek8s,
 		deployFactory:     deployFactory,
 	}
 
@@ -328,8 +330,9 @@ func Test_PackageRefWithPrerelease_DoesNotRequirePrereleaseMarker(t *testing.T) 
 
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
+	kuberneedies.InitializeCoreClient(fakek8s)
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&expectedPackageVersion)
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -388,7 +391,8 @@ func Test_PackageRefUsesName(t *testing.T) {
 	fakePkgClient := fakeapiserver.NewSimpleClientset(&expectedPackageVersion, &alternatePackageVersion)
 	log := logf.Log.WithName("kc")
 	fakek8s := fake.NewSimpleClientset()
-	deployFactory := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	kuberneedies.InitializeCoreClient(fakek8s)
+	deployFactory := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -470,7 +474,8 @@ func Test_PlaceHolderSecretCreated_WhenPackageHasNoSecretRef(t *testing.T) {
 	log := logf.Log.WithName("kc")
 	fakekctrl := fakekappctrl.NewSimpleClientset(model)
 	fakek8s := fake.NewSimpleClientset()
-	deployFac := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	kuberneedies.InitializeCoreClient(fakek8s)
+	deployFac := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -478,7 +483,7 @@ func Test_PlaceHolderSecretCreated_WhenPackageHasNoSecretRef(t *testing.T) {
 		GitVersion: "v0.20.0",
 	}
 
-	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, fakek8s, "0.42.31337", deployFac)
+	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, "0.42.31337", deployFac)
 
 	_, err := ip.Reconcile()
 	assert.Nil(t, err)
@@ -551,14 +556,15 @@ func Test_PlaceHolderSecretsCreated_WhenPackageHasMultipleFetchStages(t *testing
 	log := logf.Log.WithName("kc")
 	fakekctrl := fakekappctrl.NewSimpleClientset(model)
 	fakek8s := fake.NewSimpleClientset()
-	deployFac := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	kuberneedies.InitializeCoreClient(fakek8s)
+	deployFac := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
 	fakeDiscovery.FakedServerVersion = &version.Info{
 		GitVersion: "v0.20.0",
 	}
 
-	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, fakek8s, "0.42.31337", deployFac)
+	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, "0.42.31337", deployFac)
 
 	_, err := ip.Reconcile()
 	assert.Nil(t, err)
@@ -641,7 +647,8 @@ func Test_PlaceHolderSecretsNotCreated_WhenFetchStagesHaveSecrets(t *testing.T) 
 	log := logf.Log.WithName("kc")
 	fakekctrl := fakekappctrl.NewSimpleClientset(model)
 	fakek8s := fake.NewSimpleClientset()
-	deployFac := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
+	kuberneedies.InitializeCoreClient(fakek8s)
+	deployFac := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)
@@ -649,7 +656,7 @@ func Test_PlaceHolderSecretsNotCreated_WhenFetchStagesHaveSecrets(t *testing.T) 
 		GitVersion: "v0.20.0",
 	}
 
-	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, fakek8s, "0.42.31337", deployFac)
+	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, "0.42.31337", deployFac)
 
 	_, err := ip.Reconcile()
 	assert.Nil(t, err)
@@ -726,8 +733,9 @@ func Test_PlaceHolderSecretCreated_WhenPackageInstallUpdated(t *testing.T) {
 
 	fakekctrl := fakekappctrl.NewSimpleClientset(model, existingApp)
 	fakek8s := fake.NewSimpleClientset()
-	deployFac := deploy.NewFactory(fakek8s, nil, exec.NewPlainCmdRunner(), log)
-	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, fakek8s, "0.42.31337", deployFac)
+	kuberneedies.InitializeCoreClient(fakek8s)
+	deployFac := deploy.NewFactory(nil, exec.NewPlainCmdRunner(), log)
+	ip := NewPackageInstallCR(model, log, fakekctrl, fakePkgClient, "0.42.31337", deployFac)
 
 	// mock the kubernetes server version
 	fakeDiscovery, _ := fakek8s.Discovery().(*fakediscovery.FakeDiscovery)

@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/kubernetes"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -20,17 +19,15 @@ import (
 
 // Reconciler is responsible for reconciling kapp-controllers config.
 type Reconciler struct {
-	coreClient kubernetes.Interface
-	config     *Config
-	osConfig   OSConfig
-	log        logr.Logger
+	config   *Config
+	osConfig OSConfig
+	log      logr.Logger
 }
 
 // NewReconciler constructs new Reconciler.
-func NewReconciler(coreClient kubernetes.Interface,
-	config *Config, osConfig OSConfig, log logr.Logger) *Reconciler {
+func NewReconciler(config *Config, osConfig OSConfig, log logr.Logger) *Reconciler {
 
-	return &Reconciler{coreClient, config, osConfig, log}
+	return &Reconciler{config, osConfig, log}
 }
 
 var _ reconcile.Reconciler = &Reconciler{}
