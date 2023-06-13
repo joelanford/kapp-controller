@@ -11,8 +11,8 @@ require (
 	github.com/stretchr/testify v1.8.1
 	github.com/vmware-tanzu/carvel-vendir v0.33.1
 	golang.org/x/crypto v0.3.0
-	golang.org/x/text v0.9.0 // indirect
-	golang.org/x/tools v0.9.1
+	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/tools v0.6.0
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.25.6
 	k8s.io/apimachinery v0.25.6
@@ -32,10 +32,10 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/k14s/semver/v4 v4.0.1-0.20210701191048-266d47ac6115
 	github.com/spf13/cobra v1.6.1
-	golang.org/x/sync v0.2.0
+	golang.org/x/sync v0.1.0
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/component-base v0.25.6
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.70.1
 	k8s.io/utils v0.0.0-20220728103510-ee6ede2d64ed
 )
 
@@ -52,7 +52,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cppforlife/color v1.9.1-0.20200716202919-6706ac40b835 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
+	github.com/emicklei/go-restful/v3 v3.8.0 // indirect
 	github.com/evanphx/json-patch v4.12.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.6.0 // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
@@ -104,11 +104,11 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/mod v0.10.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/net v0.8.0 // indirect
 	golang.org/x/oauth2 v0.1.0 // indirect
-	golang.org/x/sys v0.8.0 // indirect
-	golang.org/x/term v0.8.0 // indirect
+	golang.org/x/sys v0.6.0 // indirect
+	golang.org/x/term v0.6.0 // indirect
 	golang.org/x/time v0.0.0-20220609170525-579cf78fd858 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

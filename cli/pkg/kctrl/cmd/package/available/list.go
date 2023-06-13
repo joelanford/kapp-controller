@@ -82,9 +82,7 @@ func NewListCmd(o *ListOptions, flagsFactory cmdcore.FlagsFactory) *cobra.Comman
 
 func (o *ListOptions) Run(args []string) error {
 	if o.pkgCmdTreeOpts.PositionalArgs && len(args) > 0 {
-		if len(args) > 0 {
-			o.Name = args[0]
-		}
+		o.Name = args[0]
 	}
 
 	if o.Summary && o.Name == "" {
