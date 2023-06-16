@@ -184,11 +184,11 @@ func (gc *Config) AppDefaultSyncPeriod() time.Duration {
 // sync period App would use for reconciliation. This value
 // takes precedence over any sync period that is lower.
 func (gc *Config) AppMinimumSyncPeriod() time.Duration {
-	const min = 30 * time.Second
-	if gc.data.appMinimumSyncPeriod > min {
+	const lowestMin = 30 * time.Second
+	if gc.data.appMinimumSyncPeriod > lowestMin {
 		return gc.data.appMinimumSyncPeriod
 	}
-	return min
+	return lowestMin
 }
 
 func (gc *Config) addSecretDataToConfig(secret *v1.Secret) error {

@@ -1,7 +1,6 @@
 // Copyright 2022 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package kubeconfig provides access to the cluster for kapp-controller
 package kubeconfig
 
 import (
