@@ -69,9 +69,7 @@ func NewDeleteCmd(o *DeleteOptions, flagsFactory cmdcore.FlagsFactory) *cobra.Co
 
 func (o *DeleteOptions) Run(args []string) error {
 	if o.pkgCmdTreeOpts.PositionalArgs {
-		if len(args) > 0 {
-			o.Name = args[0]
-		}
+		o.Name = args[0]
 	}
 
 	if len(o.Name) == 0 {

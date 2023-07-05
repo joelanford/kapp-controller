@@ -48,7 +48,6 @@ var (
 		"--apply-default-update-strategy",
 		"--apply-ignored",
 		"--apply-timeout",
-		"--exit-early-on-apply-error",
 
 		// Waiting
 		"--wait",
@@ -56,7 +55,6 @@ var (
 		"--wait-concurrency",
 		"--wait-ignored",
 		"--wait-timeout",
-		"--exit-early-on-wait-error",
 	}
 )
 
