@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	appinit "github.com/vmware-tanzu/carvel-kapp-controller/cli/pkg/kctrl/cmd/app/init"
 	cmdcore "github.com/vmware-tanzu/carvel-kapp-controller/cli/pkg/kctrl/cmd/core"
 	cmdlocal "github.com/vmware-tanzu/carvel-kapp-controller/cli/pkg/kctrl/local"
-	buildconfigs "github.com/vmware-tanzu/carvel-kapp-controller/cli/pkg/kctrl/local/buildconfigs"
 	"github.com/vmware-tanzu/carvel-kapp-controller/cli/pkg/kctrl/logger"
 	kcv1alpha1 "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apis/kappctrl/v1alpha1"
 	fakekc "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned/fake"
@@ -30,12 +30,9 @@ type AppSpecBuilder struct {
 type AppSpecBuilderOpts struct {
 	BuildTemplate []kcv1alpha1.AppTemplate
 	BuildDeploy   []kcv1alpha1.AppDeploy
-	BuildExport   []buildconfigs.Export
+	BuildExport   []appinit.Export
 	BundleImage   string
 	Debug         bool
-	BundleTag     string
-
-	BuildYttValidations bool
 }
 
 func NewAppSpecBuilder(depsFactory cmdcore.DepsFactory, logger logger.Logger, ui cmdcore.AuthoringUI, opts AppSpecBuilderOpts) *AppSpecBuilder {
@@ -85,7 +82,7 @@ func (b *AppSpecBuilder) Build() (kcv1alpha1.AppSpec, error) {
 
 	// Build images and resolve references using reconciler
 	tempImgpkgLockPath := filepath.Join(LockOutputFolder, LockOutputFile)
-	cmdRunner := NewReleaseCmdRunner(os.Stdout, b.opts.Debug, tempImgpkgLockPath, b.opts.BuildYttValidations, b.ui)
+	cmdRunner := NewReleaseCmdRunner(os.Stdout, b.opts.Debug, tempImgpkgLockPath, b.ui)
 	reconciler := cmdlocal.NewReconciler(b.depsFactory, cmdRunner, b.logger)
 
 	err = reconciler.Reconcile(buildConfigs, cmdlocal.ReconcileOpts{
@@ -99,16 +96,12 @@ func (b *AppSpecBuilder) Build() (kcv1alpha1.AppSpec, error) {
 
 	bundleURL := ""
 	useKbldImagesLock := false
-	tag := fmt.Sprintf("build-%d", time.Now().Unix())
-	if b.opts.BundleTag != "" {
-		tag = b.opts.BundleTag
-	}
 	for _, exportStep := range b.opts.BuildExport {
 		switch {
 		case exportStep.ImgpkgBundle != nil:
 			useKbldImagesLock = exportStep.ImgpkgBundle.UseKbldImagesLock
 			imgpkgRunner := ImgpkgRunner{
-				BundlePath:        fmt.Sprintf("%s:%s", exportStep.ImgpkgBundle.Image, tag),
+				BundlePath:        fmt.Sprintf("%s:build-%d", exportStep.ImgpkgBundle.Image, time.Now().Unix()),
 				Paths:             exportStep.IncludePaths,
 				UseKbldImagesLock: exportStep.ImgpkgBundle.UseKbldImagesLock,
 				ImgLockFilepath:   tempImgpkgLockPath,

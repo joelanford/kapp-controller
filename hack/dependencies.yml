@@ -1,57 +1,68 @@
 - checksums:
     darwin:
-      amd64: c2781a30caf7f573dece6ec186ac0e97470d0de2eccf9fcf63f267c35495ac30
+      amd64: f420c31f69120e2c80808ee5e27b69967d2e1f5fc0697929d05f8f15a84cae7b
     linux:
-      amd64: d05f430ac18b3791d831f4cfd78371a7549f225dfaeb6fef2e5bfcd293d6c382
-      arm64: 54e228823e851320b848d854218004299d2ff362e0fe9e287d5a52df502baaaf
+      amd64: cfe6d500c5c28de175d056094d117bff310465361e79156305751dafa6d1f24c
+      arm64: 089afa853fdaaebe70a112f48a45cb95e5ee9fa3afdde877eac7f48ee0539fb0
   dev: true
   name: ytt
   repo: vmware-tanzu/carvel-ytt
   urlTemplate: https://github.com/vmware-tanzu/carvel-{{.Name}}/releases/download/{{.Version}}/{{.Name}}-{{.OS}}-{{.Arch}}
-  version: v0.45.0
+  version: v0.43.4
 - checksums:
     darwin:
-      amd64: 721085d7b50323dddd92f79ea4cebbadc3d5318add886e5e02f77d8e13df6786
+      amd64: fd1064d76d534a8850dc2920129a1485c581c41737efd19406872dbe7a64ce03
     linux:
-      amd64: 9f387e18043c95c922efbf879fc1d4d616b20c1c47aeae4f834c6f0069906735
-      arm64: 0ffa023c69355ca43ae131be065963e30d576963a066e903c7691fb54a79d08c
+      amd64: e255a252b292901101fac66ff8637726f63d3c601422e7595249ce62881551a2
+      arm64: 03e39df759f06418f9adcd7a0a42a654a69e7f885ed7a7bee3ceb501c4672372
   dev: true
   name: kbld
   repo: vmware-tanzu/carvel-kbld
   urlTemplate: https://github.com/vmware-tanzu/carvel-{{.Name}}/releases/download/{{.Version}}/{{.Name}}-{{.OS}}-{{.Arch}}
-  version: v0.37.0
+  version: v0.35.4
 - checksums:
     darwin:
-      amd64: dcbf6dd9b4cecfc6316391029a6e9a5f3863e6a1f7848eb5fb78bfdbdc06faf8
+      amd64: 4064e82152377995cff10973345165ace190cc957ac039b933ea6dfd839a115c
     linux:
-      amd64: 9aaa735985efbe240af0ca1d80adf3b43be6cf4ec6620a053082e31bea25dae7
-      arm64: 944fdfebfdf1026d318609cc706bad454196f0b1d76e557b56c829b0e6165a9f
+      amd64: d6b619b9eaffab9e23f9ffc785a9fe3277688d75b4261f58724a6f6f1a6645b8
+      arm64: b35ec69b432b70a83e0df3c1d81fd96f9cccae5fea2fb1b2a673e1821dd0e280
   dev: true
   name: kapp
   repo: vmware-tanzu/carvel-kapp
   urlTemplate: https://github.com/vmware-tanzu/carvel-{{.Name}}/releases/download/{{.Version}}/{{.Name}}-{{.OS}}-{{.Arch}}
-  version: v0.55.0
+  version: v0.53.8
 - checksums:
     darwin:
-      amd64: 155b6ff8c251b53dfd7e9554ff657b5bf626659dc288012a124a8bdb9186851e
+      amd64: 9ff75927c7b5ce17c638d0ce160634f51c3065891f83ddc42bc99d0391aec42c
     linux:
-      amd64: 6c9ed811fe9983e03424f2ecfc00a4aaeb19646ef27c42eb2a6c643ea07bd32b
-      arm64: 79e026faaa1ac75c36414a97ee7e58b4bf9c148b1ce34aee795c667b71745519
+      amd64: 0c79f0dd403b8bcb22fcb26c0c085be5f79fa8a5c8986306bb0b19ed03cb1f38
+      arm64: ec1d61d676756da73247e8269401682ed7e9fb956dc004827ab244c59c110df5
+  dev: true
+  name: imgpkg
+  repo: vmware-tanzu/carvel-imgpkg
+  urlTemplate: https://github.com/vmware-tanzu/carvel-{{.Name}}/releases/download/{{.Version}}/{{.Name}}-{{.OS}}-{{.Arch}}
+  version: v0.31.5
+- checksums:
+    darwin:
+      amd64: a8e256abb4239cb396e47d1e4fed483f7b1f6a2ca579a87d0e75949802d2e3b9
+    linux:
+      amd64: 1a08e038964a8a4fc58a5080ce1f7d0410a2ac43117f89c316665e584617b2cf
+      arm64: f83e7633b9694ce9aedc5a25c4bddbae6090123f84d5b68250140ca092fcb669
   dev: true
   name: vendir
   repo: vmware-tanzu/carvel-vendir
   urlTemplate: https://github.com/vmware-tanzu/carvel-{{.Name}}/releases/download/{{.Version}}/{{.Name}}-{{.OS}}-{{.Arch}}
-  version: v0.33.1
+  version: v0.30.4
 - checksums:
     linux:
-      amd64: 781d826daec584f9d50a01f0f7dadfd25a3312217a14aa2fbb85107b014ac8ca
-      arm64: 0a60baac83c3106017666864e664f52a4e16fbd578ac009f9a85456a9241c5db
+      amd64: 950439759ece902157cf915b209b8d694e6f675eaab5099fb7894f30eeaee9a2
+      arm64: 260cda5ff2ed5d01dd0fd6e7e09bc80126e00d8bdc55f3269d05129e32f6f99d
   dev: false
   name: helm
   repo: helm/helm
   tarballSubpath: '{{.OS}}-{{.Arch}}/helm'
   urlTemplate: https://get.helm.sh/helm-{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz
-  version: v3.11.2
+  version: v3.10.3
 - checksums:
     linux:
       amd64: 53aec65e45f62a769ff24b7e5384f0c82d62668dd96ed56685f649da114b4dbb
