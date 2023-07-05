@@ -16,3 +16,16 @@ type Deploy interface {
 
 	Inspect() exec.CmdRunResult
 }
+
+type GenericOpts struct {
+	Name      string
+	Namespace string
+}
+
+type ProcessedGenericOpts struct {
+	Name      string
+	Namespace string
+
+	Kubeconfig                    *KubeconfigRestricted
+	DangerousUsePodServiceAccount bool
+}

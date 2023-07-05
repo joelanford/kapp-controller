@@ -16,11 +16,8 @@ import (
 	fakedpkg "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/client/clientset/versioned/fake"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/app"
 	fakekc "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned/fake"
-	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/componentinfo"
 	kcconfig "github.com/vmware-tanzu/carvel-kapp-controller/pkg/config"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/exec"
-	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/kubeconfig"
-	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/memdir"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/metrics"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/packageinstall"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/reftracker"
@@ -47,11 +44,10 @@ func NewReconciler(depsFactory cmdcore.DepsFactory,
 }
 
 type ReconcileOpts struct {
-	Local           bool
-	KbldBuild       bool
-	Delete          bool
-	Debug           bool
-	DeployResources bool
+	Local     bool
+	KbldBuild bool
+	Delete    bool
+	Debug     bool
 
 	BeforeAppReconcile func(kcv1alpha1.App, *fakekc.Clientset) error
 	AfterAppReconcile  func(kcv1alpha1.App, *fakekc.Clientset) error
@@ -85,23 +81,17 @@ func (o *Reconciler) Reconcile(configs Configs, opts ReconcileOpts) error {
 		appRes.Namespace = pkgiRes.Namespace
 	}
 
-	var coreClient kubernetes.Interface
-	if opts.DeployResources {
-		// An instance coreClient is only instantiated if resources are going to be deployed
-		client, err := o.depsFactory.CoreClient()
-		if err != nil {
-			return err
-		}
-		coreClient = client
-		err = o.hackyConfigureKubernetesDst(coreClient)
-		if err != nil {
-			return err
-		}
+	coreClient, err := o.depsFactory.CoreClient()
+	if err != nil {
+		return fmt.Errorf("Getting core client: %s", err)
+	}
+
+	err = o.hackyConfigureKubernetesDst(coreClient)
+	if err != nil {
+		return err
 	}
 
 	minCoreClient := &MinCoreClient{
-		// This is a nil interface when we do not expect resources to be deployed
-		// Only the dev command requires an instance of coreClient to be supplied here
 		client:          coreClient,
 		localSecrets:    &localSecrets{configs.Secrets},
 		localConfigMaps: configs.ConfigMaps,
@@ -216,11 +206,6 @@ func (o *Reconciler) newReconcilers(
 	refTracker := reftracker.NewAppRefTracker()
 	updateStatusTracker := reftracker.NewAppUpdateStatus()
 
-	kubeConfig := kubeconfig.NewKubeconfig(coreClient, runLog)
-	compInfo := componentinfo.NewComponentInfo(coreClient, kubeConfig, "dev")
-
-	cacheFolderPkgRepoApps := memdir.NewTmpDir("cache-package-repo")
-
 	appFactory := app.CRDAppFactory{
 		CoreClient:       coreClient,
 		AppClient:        kcClient,
@@ -229,19 +214,15 @@ func (o *Reconciler) newReconcilers(
 		VendirConfigHook: vendirConfigHook,
 		KbldAllowBuild:   opts.KbldBuild, // only for CLI mode
 		CmdRunner:        o.cmdRunner,
-		CompInfo:         compInfo,
-		CacheFolder:      cacheFolderPkgRepoApps,
-		Kubeconf:         kubeConfig,
 	}
 	appReconciler := app.NewReconciler(kcClient, runLog.WithName("app"),
-		appFactory, refTracker, updateStatusTracker, compInfo)
+		appFactory, refTracker, updateStatusTracker)
 
 	pkgiReconciler := packageinstall.NewReconciler(
 		kcClient, pkgClient, coreClient,
 		// TODO do not need this in the constructor of Reconciler
 		(*packageinstall.PackageInstallVersionHandler)(nil),
 		runLog.WithName("pkgi"),
-		compInfo,
 	)
 
 	return appReconciler, pkgiReconciler

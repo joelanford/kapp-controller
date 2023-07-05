@@ -13,26 +13,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
-// ReconcileTimerOpts keeps duration settings
-type ReconcileTimerOpts struct {
-	DefaultSyncPeriod time.Duration
-	MinimumSyncPeriod time.Duration
-}
-
-// ReconcileTimer determines how much time is left
-// until next App reconciliation is necessary.
 type ReconcileTimer struct {
-	app  v1alpha1.App
-	opts ReconcileTimerOpts
+	app v1alpha1.App
 }
 
-// NewReconcileTimer returns a new ReconcileTimer for a given App.
-func NewReconcileTimer(app v1alpha1.App, opts ReconcileTimerOpts) ReconcileTimer {
-	// Double check that minimum sync period is not misconfigured
-	if opts.MinimumSyncPeriod < 30*time.Second {
-		panic("Internal inconsistency: Incorrectly configured minimum sync period")
-	}
-	return ReconcileTimer{*app.DeepCopy(), opts}
+func NewReconcileTimer(app v1alpha1.App) ReconcileTimer {
+	return ReconcileTimer{*app.DeepCopy()}
 }
 
 func (rt ReconcileTimer) DurationUntilReady(err error) time.Duration {
@@ -75,14 +61,11 @@ func (rt ReconcileTimer) IsReadyAt(timeAt time.Time) bool {
 }
 
 func (rt ReconcileTimer) syncPeriod() time.Duration {
-	selectedDur := rt.opts.DefaultSyncPeriod
-	if sp := rt.app.Spec.SyncPeriod; sp != nil {
-		selectedDur = sp.Duration
+	const defaultSyncPeriod = 30 * time.Second
+	if sp := rt.app.Spec.SyncPeriod; sp != nil && sp.Duration > defaultSyncPeriod {
+		return sp.Duration
 	}
-	if selectedDur < rt.opts.MinimumSyncPeriod {
-		selectedDur = rt.opts.MinimumSyncPeriod
-	}
-	return selectedDur
+	return defaultSyncPeriod
 }
 
 func (rt ReconcileTimer) failureSyncPeriod() time.Duration {
