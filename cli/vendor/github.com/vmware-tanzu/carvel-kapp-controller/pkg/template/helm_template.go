@@ -9,7 +9,6 @@ import (
 	"io"
 	"os"
 	goexec "os/exec"
-	"strings"
 
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/apis/kappctrl/v1alpha1"
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/exec"
@@ -18,11 +17,10 @@ import (
 )
 
 type HelmTemplate struct {
-	opts             v1alpha1.AppTemplateHelmTemplate
-	appContext       AppContext
-	coreClient       kubernetes.Interface
-	cmdRunner        exec.CmdRunner
-	additionalValues AdditionalDownwardAPIValues
+	opts       v1alpha1.AppTemplateHelmTemplate
+	appContext AppContext
+	coreClient kubernetes.Interface
+	cmdRunner  exec.CmdRunner
 }
 
 // HelmTemplateCmdArgs represents the binary and arguments used during templating
@@ -33,15 +31,13 @@ type HelmTemplateCmdArgs struct {
 
 var _ Template = &HelmTemplate{}
 
-// NewHelmTemplate returns a HelmTemplate
-func NewHelmTemplate(opts v1alpha1.AppTemplateHelmTemplate, appContext AppContext, coreClient kubernetes.Interface,
-	cmdRunner exec.CmdRunner, additionalValues AdditionalDownwardAPIValues) *HelmTemplate {
+func NewHelmTemplate(opts v1alpha1.AppTemplateHelmTemplate,
+	appContext AppContext, coreClient kubernetes.Interface,
+	cmdRunner exec.CmdRunner) *HelmTemplate {
 
-	return &HelmTemplate{opts: opts, appContext: appContext, coreClient: coreClient, cmdRunner: cmdRunner,
-		additionalValues: additionalValues}
+	return &HelmTemplate{opts, appContext, coreClient, cmdRunner}
 }
 
-// TemplateDir runs helm template against a directory of files
 func (t *HelmTemplate) TemplateDir(dirPath string) (exec.CmdRunResult, bool) {
 	return t.template(dirPath, nil), true
 }
@@ -74,27 +70,10 @@ func (t *HelmTemplate) template(dirPath string, input io.Reader) exec.CmdRunResu
 	}
 
 	args := []string{"template", name, chartPath, "--namespace", namespace, "--include-crds"}
-	vals := Values{t.opts.ValuesFrom, t.additionalValues, t.appContext, t.coreClient}
 
-	var result exec.CmdRunResult
-	if t.opts.KubernetesVersion != nil {
-		v, err := vals.AdditionalValues.KubernetesVersion()
-		if err != nil {
-			result.AttachErrorf("%s", fmt.Errorf("Unable to get kubernetes version during helm template: %s", err))
-			return result
-		}
-		args = append(args, []string{"--kube-version", v}...)
-	}
-	if t.opts.KubernetesAPIs != nil {
-		v, err := vals.AdditionalValues.KubernetesAPIs()
-		if err != nil {
-			result.AttachErrorf("%s", fmt.Errorf("Unable to get kubernetes APIs during helm template: %s", err))
-			return result
-		}
-		args = append(args, []string{"--api-versions", strings.Join(v, ",")}...)
-	}
+	{ // Add values files
+		vals := Values{t.opts.ValuesFrom, t.appContext, t.coreClient}
 
-	{
 		paths, valuesCleanUpFunc, err := vals.AsPaths(dirPath)
 		if err != nil {
 			return exec.NewCmdRunResultWithErr(err)
@@ -122,7 +101,7 @@ func (t *HelmTemplate) template(dirPath string, input io.Reader) exec.CmdRunResu
 
 	err := t.cmdRunner.Run(cmd)
 
-	result = exec.CmdRunResult{
+	result := exec.CmdRunResult{
 		Stdout: stdoutBs.String(),
 		Stderr: stderrBs.String(),
 	}

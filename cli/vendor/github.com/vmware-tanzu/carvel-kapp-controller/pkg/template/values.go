@@ -6,7 +6,7 @@ package template
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/ioutil"
 	"sort"
 
 	"github.com/vmware-tanzu/carvel-kapp-controller/pkg/apis/kappctrl/v1alpha1"
@@ -16,8 +16,7 @@ import (
 )
 
 type Values struct {
-	ValuesFrom       []v1alpha1.AppTemplateValuesSource
-	AdditionalValues AdditionalDownwardAPIValues
+	ValuesFrom []v1alpha1.AppTemplateValuesSource
 
 	appContext AppContext
 	coreClient kubernetes.Interface
@@ -67,18 +66,17 @@ func (t Values) AsPaths(dirPath string) ([]string, func(), error) {
 
 		case source.DownwardAPI != nil:
 			downwardAPIValues := DownwardAPIValues{
-				items:                       source.DownwardAPI.Items,
-				metadata:                    t.appContext.Metadata,
-				additionalDownwardAPIValues: t.AdditionalValues,
+				items:    source.DownwardAPI.Items,
+				metadata: t.appContext.Metadata,
 			}
 			paths, err = t.writeFromDownwardAPI(valuesDir.Path(), downwardAPIValues)
 
 		default:
-			err = fmt.Errorf("Expected one of secretRef, configMapRef, downwardAPI, or path as a source")
+			err = fmt.Errorf("Expected either secretRef, configMapRef or path as a source")
 		}
 		if err != nil {
 			cleanUpFunc()
-			return nil, nil, fmt.Errorf("Preparing template values: %s", err)
+			return nil, nil, fmt.Errorf("Writing paths: %s", err)
 		}
 
 		allPaths = append(allPaths, paths...)
@@ -136,7 +134,7 @@ func (t Values) writeFile(dstPath, subPath string, content []byte) (string, erro
 		return "", err
 	}
 
-	err = os.WriteFile(newPath, content, 0600)
+	err = ioutil.WriteFile(newPath, content, 0600)
 	if err != nil {
 		return "", fmt.Errorf("Writing file '%s': %s", newPath, err)
 	}
