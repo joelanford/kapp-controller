@@ -13,7 +13,6 @@ import (
 	datapkgingv1alpha1 "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/apis/datapackaging/v1alpha1"
 	pkgclient "github.com/vmware-tanzu/carvel-kapp-controller/pkg/apiserver/client/clientset/versioned"
 	kcclient "github.com/vmware-tanzu/carvel-kapp-controller/pkg/client/clientset/versioned"
-	kcconfig "github.com/vmware-tanzu/carvel-kapp-controller/pkg/config"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -31,22 +30,19 @@ type Reconciler struct {
 	pkgToPkgInstallHandler *PackageInstallVersionHandler
 	compInfo               ComponentInfo
 	log                    logr.Logger
-	kcConfig               *kcconfig.Config
 }
 
 // NewReconciler is the constructor for the Reconciler struct
 func NewReconciler(kcClient kcclient.Interface, pkgClient pkgclient.Interface,
 	coreClient kubernetes.Interface, pkgToPkgInstallHandler *PackageInstallVersionHandler,
-	log logr.Logger, compInfo ComponentInfo, kcConfig *kcconfig.Config) *Reconciler {
+	log logr.Logger, compInfo ComponentInfo) *Reconciler {
 
 	return &Reconciler{kcClient: kcClient,
 		pkgClient:              pkgClient,
 		coreClient:             coreClient,
 		pkgToPkgInstallHandler: pkgToPkgInstallHandler,
 		compInfo:               compInfo,
-		log:                    log,
-		kcConfig:               kcConfig,
-	}
+		log:                    log}
 }
 
 var _ reconcile.Reconciler = &Reconciler{}
@@ -89,5 +85,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, request reconcile.Request) (
 		return reconcile.Result{}, err
 	}
 
-	return NewPackageInstallCR(existingPkgInstall, log, r.kcClient, r.pkgClient, r.coreClient, r.compInfo, Opts{DefaultSyncPeriod: r.kcConfig.PackageInstallDefaultSyncPeriod()}).Reconcile()
+	return NewPackageInstallCR(existingPkgInstall, log, r.kcClient, r.pkgClient, r.coreClient, r.compInfo).Reconcile()
 }

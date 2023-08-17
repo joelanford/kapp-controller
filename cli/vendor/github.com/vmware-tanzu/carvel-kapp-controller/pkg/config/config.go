@@ -11,7 +11,6 @@ import (
 	"os"
 	"strings"
 	"sync"
-	"time"
 
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -26,20 +25,11 @@ type Config struct {
 	client    kubernetes.Interface
 	namespace string
 
-	dataLock sync.RWMutex
-	data     configData
-}
-
-// configData keeps all configuration data in one struct
-// so that it's easy to swap all configuration atomically.
-type configData struct {
+	lock                 sync.RWMutex
 	caCerts              string
 	proxyOpts            ProxyOpts
 	kappDeployRawOptions []string
 	skipTLSVerify        string
-
-	appDefaultSyncPeriod time.Duration
-	appMinimumSyncPeriod time.Duration
 }
 
 const (
@@ -109,18 +99,18 @@ func (gc *Config) findExternalConfig() (*v1.Secret, *v1.ConfigMap, error) {
 
 // CACerts returns configured CA certificates in PEM format.
 func (gc *Config) CACerts() string {
-	gc.dataLock.RLock()
-	defer gc.dataLock.RUnlock()
+	gc.lock.RLock()
+	defer gc.lock.RUnlock()
 
-	return gc.data.caCerts
+	return gc.caCerts
 }
 
 // ProxyOpts returns configured proxy configuration.
 func (gc *Config) ProxyOpts() ProxyOpts {
-	gc.dataLock.RLock()
-	defer gc.dataLock.RUnlock()
+	gc.lock.RLock()
+	defer gc.lock.RUnlock()
 
-	return gc.data.proxyOpts
+	return gc.proxyOpts
 }
 
 // ShouldSkipTLSForAuthority compares a candidate host or host:port against a stored set of allow-listed authorities.
@@ -128,10 +118,10 @@ func (gc *Config) ProxyOpts() ProxyOpts {
 // Note that in some cases the allow-list may contain ports, so the function name could also be ShouldSkipTLSForDomainAndPort
 // Note that "authority" is defined in: https://www.rfc-editor.org/rfc/rfc3986#section-3 to mean "host and port"
 func (gc *Config) ShouldSkipTLSForAuthority(candidateAuthority string) bool {
-	gc.dataLock.RLock()
-	defer gc.dataLock.RUnlock()
+	gc.lock.RLock()
+	defer gc.lock.RUnlock()
 
-	authorities := gc.data.skipTLSVerify
+	authorities := gc.skipTLSVerify
 	if len(authorities) == 0 {
 		return false
 	}
@@ -160,35 +150,14 @@ func (gc *Config) ShouldSkipTLSForAuthority(candidateAuthority string) bool {
 
 // KappDeployRawOptions returns user configured kapp raw options
 func (gc *Config) KappDeployRawOptions() []string {
-	gc.dataLock.RLock()
-	defer gc.dataLock.RUnlock()
+	gc.lock.RLock()
+	defer gc.lock.RUnlock()
 
 	// Configure kapp to keep only 5 app changes as it seems that
 	// larger number of ConfigMaps negative affects other controllers on the cluster.
 	// Eventually kapp can be smart enough to keep minimal number of app changes.
 	// Set default first so that it can be overridden by user provided options.
-	return append([]string{"--app-changes-max-to-keep=5"}, gc.data.kappDeployRawOptions...)
-}
-
-// AppDefaultSyncPeriod returns duration that is used by Apps
-// that do not explicitly specify sync period.
-func (gc *Config) AppDefaultSyncPeriod() time.Duration {
-	const lowestDefault = 30 * time.Second
-	if gc.data.appDefaultSyncPeriod > lowestDefault {
-		return gc.data.appDefaultSyncPeriod
-	}
-	return lowestDefault
-}
-
-// AppMinimumSyncPeriod returns duration that is used as a lowest
-// sync period App would use for reconciliation. This value
-// takes precedence over any sync period that is lower.
-func (gc *Config) AppMinimumSyncPeriod() time.Duration {
-	const min = 30 * time.Second
-	if gc.data.appMinimumSyncPeriod > min {
-		return gc.data.appMinimumSyncPeriod
-	}
-	return min
+	return append([]string{"--app-changes-max-to-keep=5"}, gc.kappDeployRawOptions...)
 }
 
 func (gc *Config) addSecretDataToConfig(secret *v1.Secret) error {
@@ -199,34 +168,18 @@ func (gc *Config) addSecretDataToConfig(secret *v1.Secret) error {
 	return gc.addDataToConfig(extractedValues)
 }
 
-func (gc *Config) addDataToConfig(rawData map[string]string) error {
-	data := configData{
-		caCerts: rawData["caCerts"],
-		proxyOpts: ProxyOpts{
-			HTTPProxy:  rawData["httpProxy"],
-			HTTPSProxy: rawData["httpsProxy"],
-			NoProxy:    gc.replaceServiceHostPlaceholder(rawData["noProxy"]),
-		},
-		skipTLSVerify: rawData["dangerousSkipTLSVerify"],
+func (gc *Config) addDataToConfig(data map[string]string) error {
+	gc.lock.Lock()
+	defer gc.lock.Unlock()
+
+	gc.caCerts = data["caCerts"]
+	gc.proxyOpts = ProxyOpts{
+		HTTPProxy:  data["httpProxy"],
+		HTTPSProxy: data["httpsProxy"],
+		NoProxy:    gc.replaceServiceHostPlaceholder(data["noProxy"]),
 	}
 
-	if val := rawData["appDefaultSyncPeriod"]; len(val) > 0 {
-		dur, err := time.ParseDuration(val)
-		if err != nil {
-			return fmt.Errorf("Unmarshaling appDefaultSyncPeriod as duration: %s", err)
-		}
-		data.appDefaultSyncPeriod = dur
-	}
-
-	if val := rawData["appMinimumSyncPeriod"]; len(val) > 0 {
-		dur, err := time.ParseDuration(val)
-		if err != nil {
-			return fmt.Errorf("Unmarshaling appMinimumSyncPeriod as duration: %s", err)
-		}
-		data.appMinimumSyncPeriod = dur
-	}
-
-	if val := rawData["kappDeployRawOptions"]; len(val) > 0 {
+	if val := data["kappDeployRawOptions"]; len(val) > 0 {
 		var opts []string
 		err := json.Unmarshal([]byte(val), &opts)
 		if err != nil {
@@ -234,13 +187,12 @@ func (gc *Config) addDataToConfig(rawData map[string]string) error {
 		}
 		// Allowed flags will be verified before kapp is invoked within Kapp class.
 		// (See pkg/deploy/kapp_restrict.go).
-		data.kappDeployRawOptions = opts
+		gc.kappDeployRawOptions = opts
+	} else {
+		gc.kappDeployRawOptions = nil
 	}
 
-	gc.dataLock.Lock()
-	defer gc.dataLock.Unlock()
-	gc.data = data
-
+	gc.skipTLSVerify = data["dangerousSkipTLSVerify"]
 	return nil
 }
 

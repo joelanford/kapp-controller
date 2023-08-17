@@ -1,8 +1,6 @@
 // Copyright 2021 VMware, Inc.
 // SPDX-License-Identifier: Apache-2.0
 
-// Package template provides a factory pattern design of instantiating a new "templater" in kapp-controller
-// some examples include cue, helm, and ytt
 package template
 
 import (
@@ -18,20 +16,19 @@ import (
 )
 
 type cue struct {
-	opts             v1alpha1.AppTemplateCue
-	coreClient       kubernetes.Interface
-	appContext       AppContext
-	cmdRunner        exec.CmdRunner
-	additionalValues AdditionalDownwardAPIValues
+	opts       v1alpha1.AppTemplateCue
+	coreClient kubernetes.Interface
+	appContext AppContext
+	cmdRunner  exec.CmdRunner
 }
 
 var _ Template = &cue{}
 
 func newCue(opts v1alpha1.AppTemplateCue, appContext AppContext,
-	coreClient kubernetes.Interface, cmdRunner exec.CmdRunner, additionalValues AdditionalDownwardAPIValues) *cue {
+	coreClient kubernetes.Interface, cmdRunner exec.CmdRunner) *cue {
 
 	return &cue{opts: opts, appContext: appContext,
-		coreClient: coreClient, cmdRunner: cmdRunner, additionalValues: additionalValues}
+		coreClient: coreClient, cmdRunner: cmdRunner}
 }
 
 // TemplateDir works on directory returning templating result,
@@ -43,7 +40,7 @@ func (c *cue) TemplateDir(dirPath string) (exec.CmdRunResult, bool) {
 
 // TemplateStream works on a stream returning templating result.
 // dirPath is provided for context from which to reference additional inputs.
-func (c *cue) TemplateStream(_ io.Reader, _ string) exec.CmdRunResult {
+func (c *cue) TemplateStream(stream io.Reader, dirPath string) exec.CmdRunResult {
 	return exec.NewCmdRunResultWithErr(fmt.Errorf("Templating stream is not supported")) // TODO: Implement
 }
 
@@ -62,8 +59,7 @@ func (c *cue) template(dirPath string, input io.Reader) exec.CmdRunResult {
 		args = append(args, c.opts.Paths...)
 	}
 
-	vals := Values{c.opts.ValuesFrom, c.additionalValues, c.appContext, c.coreClient}
-
+	vals := Values{c.opts.ValuesFrom, c.appContext, c.coreClient}
 	paths, valuesCleanUpFunc, err := vals.AsPaths(dirPath)
 	if err != nil {
 		return exec.NewCmdRunResultWithErr(fmt.Errorf("Writing values: %w", err))

@@ -6,7 +6,6 @@ package packageinstall
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-logr/logr"
 	semver "github.com/k14s/semver/v4"
@@ -53,19 +52,13 @@ type PackageInstallCR struct {
 	pkgclient  pkgclient.Interface
 	coreClient kubernetes.Interface
 	compInfo   ComponentInfo
-	opts       Opts
-}
-
-// nolint: revive
-type Opts struct {
-	DefaultSyncPeriod time.Duration
 }
 
 func NewPackageInstallCR(model *pkgingv1alpha1.PackageInstall, log logr.Logger,
-	kcclient kcclient.Interface, pkgclient pkgclient.Interface, coreClient kubernetes.Interface, compInfo ComponentInfo, opts Opts) *PackageInstallCR {
+	kcclient kcclient.Interface, pkgclient pkgclient.Interface, coreClient kubernetes.Interface, compInfo ComponentInfo) *PackageInstallCR {
 
 	return &PackageInstallCR{model: model, unmodifiedModel: model.DeepCopy(), log: log,
-		kcclient: kcclient, pkgclient: pkgclient, coreClient: coreClient, compInfo: compInfo, opts: opts}
+		kcclient: kcclient, pkgclient: pkgclient, coreClient: coreClient, compInfo: compInfo}
 }
 
 func (pi *PackageInstallCR) Reconcile() (reconcile.Result, error) {
@@ -181,7 +174,7 @@ func (pi *PackageInstallCR) reconcile(modelStatus *reconciler.Status) (reconcile
 }
 
 func (pi *PackageInstallCR) createAppFromPackage(pkg datapkgingv1alpha1.Package) (reconcile.Result, error) {
-	desiredApp, err := NewApp(&v1alpha1.App{}, pi.model, pkg, pi.opts)
+	desiredApp, err := NewApp(&v1alpha1.App{}, pi.model, pkg)
 	if err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
@@ -200,7 +193,7 @@ func (pi *PackageInstallCR) reconcileAppWithPackage(existingApp *kcv1alpha1.App,
 		return reconcile.Result{}, err
 	}
 
-	desiredApp, err := NewApp(existingApp, pi.model, pkgWithPlaceholderSecrets, pi.opts)
+	desiredApp, err := NewApp(existingApp, pi.model, pkgWithPlaceholderSecrets)
 	if err != nil {
 		return reconcile.Result{Requeue: true}, err
 	}
